@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codebox Pro - Editor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141416;
+    --border: #222228;
+    --accent: #00e5ff;
+    --text: #e8e8f0;
+    --muted: #555566;
+    --danger: #ff4b2b;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--mono);
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--muted); }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-run {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 7px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .btn-action {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 7px 15px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-action:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-clear:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .btn-run:active { opacity: 0.7; }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    user-select: none;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pane + .pane { border-left: 1px solid var(--border); }
+
+  .pane-label {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 6px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  #editor {
+    flex: 1;
+    width: 100%;
+    background: var(--bg);
+    color: #a8dadc;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    tab-size: 2;
+    caret-color: var(--accent);
+  }
+
+  #preview-frame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 14px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  #char-count { margin-left: auto; }
+
+  .resizer {
+    width: 4px;
+    background: var(--border);
+    cursor: col-resize;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 600px) {
+    .main { flex-direction: column; }
+    .pane + .pane { border-left: none; border-top: 1px solid var(--border); }
+    .resizer { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header id="header">
+  <div class="logo">&lt;<span>/</span>&gt; codebox</div>
+  <div class="actions">
+    <button class="btn-action btn-clear" onclick="clearCode()">Limpar</button>
+    <button class="btn-action" onclick="openFull()">Expandir ↗</button>
+    <button class="btn-run" onclick="runCode()">&#9654; Executar</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab" id="tab-html" onclick="switchTab('html')">HTML</div>
+  <div class="tab" id="tab-result" onclick="switchTab('result')">Resultado</div>
+  <div class="tab active" id="tab-split" onclick="switchTab('split')">Split</div>
+</div>
+
+<div class="main" id="main">
+  <div class="pane" id="editor-pane">
+    <div class="pane-label">editor</div>
+    <textarea id="editor" spellcheck="false"></textarea>
+  </div>
+  <div class="resizer" id="resizer"></div>
+  <div class="pane" id="preview-pane">
+    <div class="pane-label">preview</div>
+    <iframe id="preview-frame" sandbox="allow-scripts allow-forms"></iframe>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar">
+  <div class="dot"></div>
+  <span id="status-msg">pronto</span>
+  <span id="char-count">0 chars</span>
+</div>
+
+<script>
+var defaultCode = "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: sans-serif; padding: 20px; }\n    h1 { color: teal; }\n  </style>\n</head>\n<body>\n  <h1>Ola, mundo!</h1>\n  <p>Edite este codigo e clique em Executar.</p>\n  <button onclick=\"alert('funciona!')\">Testar</button>\n</body>\n</html>";
+
+var editor = document.getElementById("editor");
+var frame = document.getElementById("preview-frame");
+var statusMsg = document.getElementById("status-msg");
+var charCount = document.getElementById("char-count");
+
+editor.value = defaultCode;
+updateCount();
+
+function runCode() {
+  frame.srcdoc = editor.value;
+  statusMsg.textContent = "executado";
+  updateCount();
+}
+
+function clearCode() {
+  if (confirm("Deseja limpar todo o código?")) {
+    editor.value = "";
+    updateCount();
+    runCode();
+    statusMsg.textContent = "limpo";
+  }
+}
+
+// NOVA FUNÇÃO: Abre o código em uma aba real do navegador
+function openFull() {
+  const newWin = window.open();
+  newWin.document.write(editor.value);
+  newWin.document.close();
+}
+
+function updateCount() {
+  charCount.textContent = editor.value.length + " chars";
+}
+
+editor.addEventListener("input", updateCount);
+
+editor.addEventListener("keydown", function(e) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    var s = editor.selectionStart;
+    var end = editor.selectionEnd;
+    editor.value = editor.value.substring(0, s) + "  " + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    updateCount();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    runCode();
+  }
+});
+
+function switchTab(tab) {
+  document.getElementById("tab-html").className = "tab" + (tab === "html" ? " active" : "");
+  document.getElementById("tab-result").className = "tab" + (tab === "result" ? " active" : "");
+  document.getElementById("tab-split").className = "tab" + (tab === "split" ? " active" : "");
+
+  var ep = document.getElementById("editor-pane");
+  var pp = document.getElementById("preview-pane");
+  var rs = document.getElementById("resizer");
+
+  if (tab === "html") {
+    ep.style.display = "flex"; ep.style.flex = "1";
+    pp.style.display = "none";
+    rs.style.display = "none";
+  } else if (tab === "result") {
+    ep.style.display = "none";
+    pp.style.display = "flex"; pp.style.flex = "1";
+    rs.style.display = "none";
+  } else {
+    ep.style.display = "flex"; ep.style.flex = "1";
+    pp.style.display = "flex"; pp.style.flex = "1";
+    rs.style.display = "block";
+  }
+}
+
+// Lógica do Redimensionamento (Resizer)
+var isResizing = false;
+document.getElementById("resizer").addEventListener("mousedown", function() {
+  isResizing = true;
+  document.body.style.cursor = "col-resize";
+});
+document.addEventListener("mousemove", function(e) {
+  if (!isResizing) return;
+  var rect = document.getElementById("main").getBoundingClientRect();
+  var pct = Math.min(Math.max((e.clientX - rect.left) / rect.width * 100, 20), 80);
+  document.getElementById("editor-pane").style.flex = "none";
+  document.getElementById("editor-pane").style.width = pct + "%";
+  document.getElementById("preview-pane").style.flex = "1";
+});
+document.addEventListener("mouseup", function() { 
+  isResizing = false; 
+  document.body.style.cursor = "default";
+});
+
+runCode();
+</script>
+
+</body>
+</html>
