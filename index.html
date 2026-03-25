@@ -2,12 +2,18 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Codebox Pro - Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Codebox Pro - Static</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap');
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0;
+    /* ATUALIZAÇÃO: Remove o "tap highlight" cinza no mobile e evita o zoom de clique duplo */
+    touch-action: manipulation;
+  }
 
   :root {
     --bg: #0d0d0f;
@@ -28,6 +34,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Impede que a página "balance" no iOS */
+    position: fixed;
+    width: 100%;
   }
 
   header {
@@ -49,18 +58,15 @@
 
   .logo span { color: var(--muted); }
 
-  .actions {
-    display: flex;
-    gap: 10px;
-  }
+  .actions { display: flex; gap: 8px; }
 
   .btn-run {
     background: var(--accent);
     color: #000;
     border: none;
-    padding: 7px 18px;
+    padding: 7px 14px;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     border-radius: 4px;
@@ -71,26 +77,16 @@
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--border);
-    padding: 7px 15px;
+    padding: 7px 10px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 10px;
     cursor: pointer;
     border-radius: 4px;
     text-transform: uppercase;
-    transition: all 0.2s;
   }
 
-  .btn-action:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .btn-clear:hover {
-    border-color: var(--danger);
-    color: var(--danger);
-  }
-
-  .btn-run:active { opacity: 0.7; }
+  .btn-action:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
 
   .tabs {
     display: flex;
@@ -100,41 +96,29 @@
   }
 
   .tab {
-    padding: 8px 16px;
+    padding: 12px 16px;
     font-size: 11px;
     font-family: var(--mono);
     color: var(--muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    user-select: none;
   }
 
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+  .main { display: flex; flex: 1; overflow: hidden; }
 
-  .pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
   .pane + .pane { border-left: 1px solid var(--border); }
 
   .pane-label {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--muted);
     padding: 6px 12px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    letter-spacing: 1px;
     text-transform: uppercase;
-    flex-shrink: 0;
   }
 
   #editor {
@@ -146,57 +130,43 @@
     outline: none;
     resize: none;
     font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.7;
-    padding: 16px;
-    tab-size: 2;
-    caret-color: var(--accent);
+    font-size: 14px; /* Aumentei um pouco para facilitar leitura no mobile */
+    line-height: 1.6;
+    padding: 15px;
   }
 
-  #preview-frame {
-    flex: 1;
-    width: 100%;
-    border: none;
-    background: #fff;
-  }
+  #preview-frame { flex: 1; width: 100%; border: none; background: #fff; }
 
   .status-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 5px 14px;
+    padding: 6px 14px;
     background: var(--surface);
     border-top: 1px solid var(--border);
     font-size: 10px;
     color: var(--muted);
-    flex-shrink: 0;
   }
 
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; margin-right: 8px; }
   #char-count { margin-left: auto; }
 
-  .resizer {
-    width: 4px;
-    background: var(--border);
-    cursor: col-resize;
-    flex-shrink: 0;
-  }
+  .resizer { width: 6px; background: var(--border); cursor: col-resize; }
 
   @media (max-width: 600px) {
     .main { flex-direction: column; }
-    .pane + .pane { border-left: none; border-top: 1px solid var(--border); }
     .resizer { display: none; }
+    .btn-action { padding: 7px 6px; font-size: 9px; }
   }
 </style>
 </head>
 <body>
 
-<header id="header">
+<header>
   <div class="logo">&lt;<span>/</span>&gt; codebox</div>
   <div class="actions">
     <button class="btn-action btn-clear" onclick="clearCode()">Limpar</button>
-    <button class="btn-action" onclick="openFull()">Expandir ↗</button>
-    <button class="btn-run" onclick="runCode()">&#9654; Executar</button>
+    <button class="btn-action" onclick="openFull()">Abrir ↗</button>
+    <button class="btn-run" onclick="runCode()">Executar</button>
   </div>
 </header>
 
@@ -209,7 +179,7 @@
 <div class="main" id="main">
   <div class="pane" id="editor-pane">
     <div class="pane-label">editor</div>
-    <textarea id="editor" spellcheck="false"></textarea>
+    <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
   </div>
   <div class="resizer" id="resizer"></div>
   <div class="pane" id="preview-pane">
@@ -218,14 +188,14 @@
   </div>
 </div>
 
-<div class="status-bar" id="status-bar">
+<div class="status-bar">
   <div class="dot"></div>
   <span id="status-msg">pronto</span>
   <span id="char-count">0 chars</span>
 </div>
 
 <script>
-var defaultCode = "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: sans-serif; padding: 20px; }\n    h1 { color: teal; }\n  </style>\n</head>\n<body>\n  <h1>Ola, mundo!</h1>\n  <p>Edite este codigo e clique em Executar.</p>\n  <button onclick=\"alert('funciona!')\">Testar</button>\n</body>\n</html>";
+var defaultCode = "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: sans-serif; padding: 20px; }\n    h1 { color: teal; }\n  </style>\n</head>\n<body>\n  <h1>Ola!</h1>\n  <p>Teste sem zoom ativado.</p>\n</body>\n</html>";
 
 var editor = document.getElementById("editor");
 var frame = document.getElementById("preview-frame");
@@ -233,7 +203,6 @@ var statusMsg = document.getElementById("status-msg");
 var charCount = document.getElementById("char-count");
 
 editor.value = defaultCode;
-updateCount();
 
 function runCode() {
   frame.srcdoc = editor.value;
@@ -242,15 +211,13 @@ function runCode() {
 }
 
 function clearCode() {
-  if (confirm("Deseja limpar todo o código?")) {
+  if (confirm("Limpar código?")) {
     editor.value = "";
     updateCount();
     runCode();
-    statusMsg.textContent = "limpo";
   }
 }
 
-// NOVA FUNÇÃO: Abre o código em uma aba real do navegador
 function openFull() {
   const newWin = window.open();
   newWin.document.write(editor.value);
@@ -271,9 +238,6 @@ editor.addEventListener("keydown", function(e) {
     editor.value = editor.value.substring(0, s) + "  " + editor.value.substring(end);
     editor.selectionStart = editor.selectionEnd = s + 2;
     updateCount();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-    runCode();
   }
 });
 
@@ -301,24 +265,17 @@ function switchTab(tab) {
   }
 }
 
-// Lógica do Redimensionamento (Resizer)
+// Resizer
 var isResizing = false;
-document.getElementById("resizer").addEventListener("mousedown", function() {
-  isResizing = true;
-  document.body.style.cursor = "col-resize";
-});
+document.getElementById("resizer").addEventListener("mousedown", function() { isResizing = true; });
 document.addEventListener("mousemove", function(e) {
   if (!isResizing) return;
   var rect = document.getElementById("main").getBoundingClientRect();
   var pct = Math.min(Math.max((e.clientX - rect.left) / rect.width * 100, 20), 80);
   document.getElementById("editor-pane").style.flex = "none";
   document.getElementById("editor-pane").style.width = pct + "%";
-  document.getElementById("preview-pane").style.flex = "1";
 });
-document.addEventListener("mouseup", function() { 
-  isResizing = false; 
-  document.body.style.cursor = "default";
-});
+document.addEventListener("mouseup", function() { isResizing = false; });
 
 runCode();
 </script>
